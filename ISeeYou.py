@@ -1,21 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-I SEE YOU - Ultimate OSINT Framework (2025)
-Advanced, 100% Working, Copy-Paste & Run on Kali Linux / Termux
-No Setup | No Config | Zero Changes Needed
-
-Features:
-- Name → All Socials + Public Records + Google Dorks
-- Phone → Global Exposure (WhatsApp, TrueCaller, HLR, Epieos, IntelX)
-- Email → 120+ Sites (Holehe), Breaches, IntelX, Socials
-- 100% Free APIs + Public Scraping
-- Auto Install Dependencies
-- Beautiful Banner + Interactive Menu
-- HTML + JSON Reports
-- Works Offline (after pip install)
-
-Run: python "I SEE YOU.py"
-"""
 
 import os
 import sys
@@ -29,9 +12,9 @@ from typing import Dict, List
 import requests
 from bs4 import BeautifulSoup
 
-# -------------------------------
+
 # AUTO INSTALL DEPENDENCIES
-# -------------------------------
+
 def install_package(package):
     subprocess.check_call([sys.executable, "-m", "pip", "install", package], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
@@ -56,9 +39,9 @@ except:
     install_package("holehe")
     import holehe
 
-# -------------------------------
+
 # COLORS & BANNER
-# -------------------------------
+
 class Colors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -77,14 +60,14 @@ def clear(): os.system('clear' if os.name != 'nt' else 'cls')
 def banner():
     art = f"""
 {C.BOLD}{C.OKCYAN}
-    ███████╗ ███████╗ ███████╗     ██╗   ██╗ ██████╗  ██╗   ██╗
-    ██╔════╝ ██╔════╝ ██╔════╝     ╚██╗ ██╔╝██╔═══██╗ ╚██╗ ██╔╝
-    ███████╗ █████╗   █████╗        ╚████╔╝ ██║   ██║  ╚████╔╝ 
-    ╚════██║ ██╔══╝   ██╔══╝         ╚██╔╝  ██║   ██║   ╚██╔╝  
-    ███████║ ███████╗ ███████╗        ██║   ╚██████╔╝    ██║   
-    ╚══════╝ ╚══════╝ ╚══════╝        ╚═╝    ╚═════╝     ╚═╝   
-                                                                
-                     Advanced OSINT Framework 2025
+      :::::::::::          ::::::::  :::::::::: ::::::::::       :::   :::  ::::::::  :::    ::: 
+         :+:             :+:    :+: :+:        :+:              :+:   :+: :+:    :+: :+:    :+:  
+        +:+             +:+        +:+        +:+               +:+ +:+  +:+    +:+ +:+    +:+   
+       +#+             +#++:++#++ +#++:++#   +#++:++#           +#++:   +#+    +:+ +#+    +:+    
+      +#+                    +#+ +#+        +#+                 +#+    +#+    +#+ +#+    +#+     
+     #+#             #+#    #+# #+#        #+#                 #+#    #+#    #+# #+#    #+#      
+###########          ########  ########## ##########          ###     ########   ########        
+                     I ALWAYS SEES EVERYTHING
 {C.ENDC}{C.OKGREEN}
     ╔═══════════════════════════════════════════════════════╗
     ║  100% Working • Kali/Termux • Copy-Paste & Run        ║
@@ -93,9 +76,9 @@ def banner():
     """
     print(art)
 
-# -------------------------------
+
 # DATA MODELS
-# -------------------------------
+
 @dataclass
 class Result:
     source: str
@@ -105,9 +88,9 @@ class Result:
     def to_dict(self):
         return {"source": self.source, "data": self.data, "raw": self.raw[:1000] + "..." if len(self.raw) > 1000 else self.raw}
 
-# -------------------------------
+
 # CORE ENGINE
-# -------------------------------
+
 class ISeeYou:
     def __init__(self):
         self.results: List[Result] = []
@@ -163,9 +146,9 @@ h1 {{color: #58a6ff; text-align: center;}}
             print(f"{C.OKCYAN}{i:2d}. {r.source:<25} [{hit}]{C.ENDC}")
         print(f"\n{C.WARNING}Reports in: I_SEE_YOU_Reports/{C.ENDC}")
 
-# -------------------------------
+
 # NAME SEARCH - EVERY SOCIAL + PUBLIC
-# -------------------------------
+
     def search_name(self, name: str):
         self.target = name
         print(f"{C.OKBLUE}Searching NAME: {name}{C.ENDC}")
@@ -197,9 +180,9 @@ h1 {{color: #58a6ff; text-align: center;}}
             except: pass
         self.add("Social Media Scan", {"found": len(found), "profiles": found})
 
-# -------------------------------
+
 # PHONE SEARCH - GLOBAL EXPOSURE
-# -------------------------------
+
     def search_phone(self, phone: str):
         self.target = phone
         phone = re.sub(r'\D', '', phone)
@@ -235,9 +218,9 @@ h1 {{color: #58a6ff; text-align: center;}}
                 self.add("HLR (Free)", data)
         except: pass
 
-# -------------------------------
+
 # EMAIL SEARCH - EVERY LOGIN + BREACH
-# -------------------------------
+
     def search_email(self, email: str):
         self.target = email
         if "@" not in email:
@@ -249,7 +232,7 @@ h1 {{color: #58a6ff; text-align: center;}}
         self._epieos(email, "email")
         self._intelx(email)
         self._social_from_email(email)
-
+ 
     def _holehe(self, email: str):
         try:
             from holehe.modules import check
@@ -279,9 +262,9 @@ h1 {{color: #58a6ff; text-align: center;}}
         domain = email.split("@")[-1]
         self.add("Email Domain", {"domain": domain, "note": "Check company site, GitHub"})
 
-# -------------------------------
+
 # COMMON SCRAPERS
-# -------------------------------
+
     def _epieos(self, query: str, type_: str):
         url = f"https://epieos.com/?q={urllib.parse.quote(query)}"
         try:
@@ -315,9 +298,9 @@ h1 {{color: #58a6ff; text-align: center;}}
         url = f"https://intelx.io/?s={urllib.parse.quote(query)}"
         self.add("IntelX (Dark Web)", {"url": url, "note": "Free leaks search"})
 
-# -------------------------------
+
 # MENU SYSTEM
-# -------------------------------
+
 def menu():
     tool = ISeeYou()
     while True:
@@ -353,9 +336,9 @@ def menu():
         else:
             input(f"{C.FAIL}No results. Enter...{C.ENDC}")
 
-# -------------------------------
+
 # RUN
-# -------------------------------
+
 if __name__ == "__main__":
     print(f"{C.OKGREEN}I SEE YOU - Starting...{C.ENDC}")
     menu()
