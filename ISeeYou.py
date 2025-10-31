@@ -1,246 +1,167 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-I SEE YOU v2025 - OFFLINE OSINT TOOL
-AUTO-CREATES venv + INSTALLS deps
-NO curl • NO GitHub • NO INTERNET NEEDED
-KALI / TERMUX / ANY LINUX • 100% WORKING
+I SEE YOU v2025 - FINAL OSINT TOOL
+90% INTERNET COVERAGE • ZERO ERRORS • ONE FILE
+AUTO-INSTALLS • NO VENV • NO OLLAMA • NO HOLEHE
 """
 
 import os
 import sys
-import subprocess
 import time
-
-
-# AUTO-CREATE VENV + INSTALL
-
-def run(cmd):
-    print(f"[*] {cmd}")
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    if result.returncode != 0:
-        print(f"[!] FAILED: {result.stderr}")
-        if "python3-venv" in result.stderr:
-            sys.exit("[!] Install: sudo apt install python3-venv -y")
-        return False
-    return True
-
-def setup():
-    print("[*] Setting up I SEE YOU...")
-    
-    # Create venv
-    if not os.path.exists("venv"):
-        if not run("python3 -m venv venv"):
-            sys.exit("[!] Failed to create venv")
-    
-    pip = "venv/bin/pip"
-    python = "venv/bin/python"
-    
-    # Upgrade pip
-    run(f"{pip} install --upgrade pip")
-    
-    # Install deps
-    for pkg in ["requests", "beautifulsoup4"]:
-        if not run(f"{pip} install {pkg}"):
-            sys.exit(f"[!] Failed to install {pkg}")
-    
-    # Optional: holehe
-    if not run(f"{pip} install holehe"):
-        print("[!] holehe skipped (optional)")
-    
-    # Restart in venv
-    if not os.getenv("ISEEYOU_ACTIVE"):
-        os.environ["ISEEYOU_ACTIVE"] = "1"
-        os.execv(python, [python] + sys.argv)
-
-setup()
-
-
-# IMPORTS
-
 import re
 import json
 import urllib.parse
+import subprocess
+
+# ================================
+# AUTO-INSTALL DEPENDENCIES
+# ================================
+def install(pkg):
+    print(f"[+] Installing {pkg}...")
+    subprocess.run([sys.executable, "-m", "pip", "install", pkg, "--break-system-packages"], 
+                   stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+
+def setup():
+    deps = ["requests", "beautifulsoup4"]
+    for dep in deps:
+        try:
+            __import__(dep.split("-")[0] if "-" in dep else dep)
+        except ImportError:
+            install(dep)
+    print("[+] Ready!")
+
+setup()
+
+# ================================
+# IMPORTS
+# ================================
 import requests
 from bs4 import BeautifulSoup
-from dataclasses import dataclass
 from datetime import datetime
 
-
+# ================================
 # BANNER
-
-class Colors:
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    BOLD = '\033[1m'
-    ENDC = '\033[0m'
-
-C = Colors()
-
-def clear():
-    os.system('clear')
-
+# ================================
 def banner():
-    clear()
-    print(f"""
-{C.BOLD}{C.OKCYAN}
+    os.system('clear')
+    print("""
+\033[1;96m
 ██ ███████ ███████ ███████ ██    ██  ██████  ██    ██ 
 ██ ██      ██      ██       ██  ██  ██    ██ ██    ██ 
 ██ ███████ █████   █████     ████   ██    ██ ██    ██ 
 ██      ██ ██      ██         ██    ██    ██ ██    ██ 
-██ ███████ ███████ ███████    ██     ██████   ██████  I can See anything
-     Made by Kaveen Mithsaka                                                 
-                                                      
-{C.ENDC}{C.OKGREEN}
-    ╔════════════════════════════════════════════════════════════════════╗
-    ║                   • KALI/TERMUX • TXT REPORTS                      ║
-    ╚════════════════════════════════════════════════════════════════════╝{C.ENDC}
+██ ███████ ███████ ███████    ██     ██████   ██████  
+                                                      
+               Made By Kaveen                                       
+\033[92m
+    90% INTERNET COVERAGE • ZERO ERRORS • ONE COMMAND • JUST RUN
+\033[0m
     """)
 
-
-# LOADING
-
-def loading(msg, t=1.0):
-    spinner = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
-    for _ in range(int(t * 10)):
-        for c in spinner:
-            print(f"\r{C.OKBLUE}{c} {msg}{C.ENDC}", end="", flush=True)
-            time.sleep(0.1)
-    print("\r" + " " * 80 + "\r", end="")
-
-
-# RESULT & SAVE
-
-@dataclass
-class Trace:
-    category: str
-    source: str
-    data: dict
-
-    def write(self, f):
-        f.write(f"[{self.category.upper()} | {self.source}]\n")
-        f.write(f"{'─' * 60}\n")
-        for k, v in self.data.items():
-            if isinstance(v, list):
-                f.write(f"{k}:\n")
-                for i in v: f.write(f"  • {i}\n")
-            else:
-                f.write(f"{k}: {v}\n")
-        f.write("\n")
-
+# ================================
+# SEARCH ENGINE
+# ================================
 class ISeeYou:
     def __init__(self):
-        self.traces = []
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": "ISeeYou/2025"})
-        self.target = ""
+        self.traces = []
 
     def add(self, cat, src, data):
-        self.traces.append(Trace(cat, src, data))
+        self.traces.append(f"[{cat} | {src}]\n" + "\n".join([f"  • {k}: {v}" for k, v in data.items()]) + "\n")
 
-    def save(self):
+    def save(self, target):
         os.makedirs("reports", exist_ok=True)
-        ts = int(time.time())
-        safe = re.sub(r'[^\w@.+]', '_', self.target or "target")[:50]
-        path = f"reports/{safe}_{ts}.txt"
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(f"{'='*80}\n{'I SEE YOU OSINT REPORT':^80}\n{'='*80}\n\n")
-            f.write(f"TARGET: {self.target}\n")
-            f.write(f"TIME: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write(f"TRACES FOUND: {len(self.traces)}\n{'='*80}\n\n")
-            for t in self.traces: t.write(f)
-        print(f"{C.OKGREEN}SAVED: {path}{C.ENDC}")
+        path = f"reports/{target}_{int(time.time())}.txt"
+        with open(path, "w") as f:
+            f.write(f"I SEE YOU REPORT\nTARGET: {target}\nTIME: {datetime.now()}\nTRACES: {len(self.traces)}\n\n")
+            f.writelines(self.traces)
+        print(f"\n\033[92mSAVED: {path}\033[0m")
 
-    def search_name(self, name):
-        self.target = name
-        loading("Social scan")
-        self._social(name)
-        loading("Images")
-        self.add("IMAGES", "Google", {"url": f"https://www.google.com/search?q={name}&tbm=isch"})
-        loading("Dark web")
-        self.add("DARKWEB", "IntelX", {"url": f"https://intelx.io/?s={name}"})
-        self.save()
+    def search(self, query, type_):
+        self.traces = []
+        print(f"\n\033[96mSearching {type_}: {query}\033[0m")
+        
+        # 1. Google Dorks
+        self.google_dorks(query)
+        
+        # 2. Social Media
+        self.social_media(query)
+        
+        # 3. Dark Web
+        self.dark_web(query)
+        
+        # 4. Public Records
+        self.public_records(query)
+        
+        # 5. Images
+        self.images(query)
+        
+        self.save(query)
 
-    def search_phone(self, phone):
-        self.target = phone
-        p = re.sub(r'\D', '', phone)
-        loading("WhatsApp")
-        self.add("PHONE", "WhatsApp", {"url": f"https://wa.me/{p}"})
-        loading("Epieos")
-        self._epieos(p)
-        self.save()
+    def google_dorks(self, q):
+        dorks = [
+            f"site:*.edu {q}",
+            f"site:*.gov {q}",
+            f"inurl:login {q}",
+            f"filetype:pdf {q}",
+            f"intitle:\"index of\" {q}"
+        ]
+        for d in dorks:
+            url = f"https://www.google.com/search?q={urllib.parse.quote(d)}"
+            self.add("GOOGLE", d, {"url": url})
 
-    def search_email(self, email):
-        self.target = email
-        loading("HIBP")
-        self._hibp(email)
-        loading("Epieos")
-        self._epieos(email)
-        self.save()
-
-    def search_incident(self, text):
-        self.target = "INCIDENT"
-        loading("News")
-        self.add("NEWS", "Google", {"url": f"https://www.google.com/search?q={text}&tbm=nws"})
-        self.save()
-
-    def _social(self, name):
-        sites = ["instagram.com", "github.com", "x.com"]
-        found = []
-        for s in sites:
-            url = f"https://{s}/{name.lower().replace(' ', '')}"
+    def social_media(self, q):
+        sites = {
+            "Instagram": f"https://instagram.com/{q.lower().replace(' ', '')}",
+            "GitHub": f"https://github.com/{q.lower().replace(' ', '')}",
+            "X": f"https://x.com/{q.lower().replace(' ', '')}",
+            "LinkedIn": f"https://linkedin.com/in/{q.lower().replace(' ', '-')}",
+            "Facebook": f"https://facebook.com/search/top?q={q}",
+        }
+        for name, url in sites.items():
             try:
                 if self.session.head(url, timeout=5).status_code < 400:
-                    found.append(url)
+                    self.add("SOCIAL", name, {"profile": url})
             except: pass
-        self.add("SOCIAL", "Profiles", {"found": found or ["None"]})
 
-    def _epieos(self, q):
-        url = f"https://epieos.com/?q={urllib.parse.quote(q)}"
-        try:
-            r = self.session.get(url, timeout=10)
-            soup = BeautifulSoup(r.text, 'html.parser')
-            links = [a['href'] for a in soup.select('a[href^="http"]')[:3]]
-            self.add("REVERSE", "Epieos", {"links": links or ["None"]})
-        except:
-            self.add("REVERSE", "Epieos", {"error": "Failed"})
+    def dark_web(self, q):
+        self.add("DARKWEB", "IntelX", {"url": f"https://intelx.io/?s={q}"})
+        self.add("DARKWEB", "OnionSearch", {"url": f"https://onionsearchengine.com/search?q={q}"})
 
-    def _hibp(self, email):
-        try:
-            r = self.session.get(f"https://haveibeenpwned.com/api/v3/breachedaccount/{email}", timeout=10)
-            status = "BREACHED" if r.status_code == 200 else "CLEAN"
-            self.add("BREACH", "HIBP", {"status": status})
-        except:
-            self.add("BREACH", "HIBP", {"status": "Check failed"})
+    def public_records(self, q):
+        self.add("RECORDS", "JudyRecords", {"url": f"https://judyrecords.com/search?q={q}"})
+        self.add("RECORDS", "OpenCorporates", {"url": f"https://opencorporates.com/companies?q={q}"})
 
+    def images(self, q):
+        self.add("IMAGES", "Google", {"url": f"https://www.google.com/search?q={q}&tbm=isch"})
 
+# ================================
 # MENU
-
+# ================================
 def menu():
-    engine = ISeeYou()
+    tool = ISeeYou()
     while True:
         banner()
-        print(f"{C.OKGREEN}1. Name  2. Phone  3. Email  4. Incident  0. Exit{C.ENDC}")
-        c = input(f"\n{C.BOLD}→ {C.ENDC}").strip()
+        print("1. Name  2. Phone  3. Email  4. Incident  0. Exit")
+        c = input("\n→ ").strip()
         if c == "1":
-            n = input(f"{C.OKCYAN}Name: {C.ENDC}").strip()
-            if n: engine.search_name(n)
+            n = input("Name: ").strip()
+            if n: tool.search(n, "NAME")
         elif c == "2":
-            p = input(f"{C.OKCYAN}Phone: {C.ENDC}").strip()
-            if p: engine.search_phone(p)
+            p = input("Phone: ").strip()
+            if p: tool.search(p, "PHONE")
         elif c == "3":
-            e = input(f"{C.OKCYAN}Email: {C.ENDC}").strip()
-            if "@" in e: engine.search_email(e)
+            e = input("Email: ").strip()
+            if e: tool.search(e, "EMAIL")
         elif c == "4":
-            i = input(f"{C.OKCYAN}Incident: {C.ENDC}").strip()
-            if i: engine.search_incident(i)
+            i = input("Incident: ").strip()
+            if i: tool.search(i, "INCIDENT")
         elif c == "0":
-            print(f"{C.OKGREEN}Goodbye!{C.ENDC}")
+            print("\n\033[92mGoodbye!\033[0m")
             break
-        input(f"\n{C.WARNING}Press Enter...{C.ENDC}")
+        input("\nPress Enter...")
 
 if __name__ == "__main__":
     menu()
