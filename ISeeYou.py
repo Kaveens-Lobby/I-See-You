@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-I SEE YOU v2025 - FINAL OSINT TOOL
-90% INTERNET COVERAGE • ZERO ERRORS • ONE FILE
-AUTO-INSTALLS • NO VENV • NO OLLAMA • NO HOLEHE
-"""
+
 
 import os
 import sys
@@ -14,9 +10,9 @@ import json
 import urllib.parse
 import subprocess
 
-# ================================
-# AUTO-INSTALL DEPENDENCIES
-# ================================
+
+# INSTALL DEPENDENCIES
+
 def install(pkg):
     print(f"[+] Installing {pkg}...")
     subprocess.run([sys.executable, "-m", "pip", "install", pkg, "--break-system-packages"], 
@@ -33,16 +29,16 @@ def setup():
 
 setup()
 
-# ================================
+
 # IMPORTS
-# ================================
+
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 
-# ================================
+
 # BANNER
-# ================================
+
 def banner():
     os.system('clear')
     print("""
@@ -59,9 +55,9 @@ def banner():
 \033[0m
     """)
 
-# ================================
+
 # SEARCH ENGINE
-# ================================
+
 class ISeeYou:
     def __init__(self):
         self.session = requests.Session()
@@ -83,19 +79,19 @@ class ISeeYou:
         self.traces = []
         print(f"\n\033[96mSearching {type_}: {query}\033[0m")
         
-        # 1. Google Dorks
+        # Google Dorks
         self.google_dorks(query)
         
-        # 2. Social Media
+        # Social Media
         self.social_media(query)
         
-        # 3. Dark Web
+        # Dark Web
         self.dark_web(query)
         
-        # 4. Public Records
+        # Public Records
         self.public_records(query)
         
-        # 5. Images
+        # Images
         self.images(query)
         
         self.save(query)
@@ -137,9 +133,9 @@ class ISeeYou:
     def images(self, q):
         self.add("IMAGES", "Google", {"url": f"https://www.google.com/search?q={q}&tbm=isch"})
 
-# ================================
+
 # MENU
-# ================================
+
 def menu():
     tool = ISeeYou()
     while True:
